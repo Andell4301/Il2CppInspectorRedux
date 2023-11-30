@@ -98,10 +98,52 @@ namespace NoisyCowStudios.Bin2Object
             }
         }
 
+        public int ReadCompressedInt32(long addr)
+        {
+            var val = ReadCompressedUInt32(addr);
+            if (val == uint.MaxValue)
+                return int.MaxValue;
+
+            var signFlag = val & 1;
+            val >>= 1;
+
+            return signFlag == 1 
+                ? -(int) (val + 1) 
+                : (int)val;
+        }
+
         public uint ReadUInt32(long addr) {
             lock (readLock) {
                 Position = addr;
                 return ReadUInt32();
+            }
+        }
+
+        public uint ReadCompressedUInt32(long addr)
+        {
+            lock (readLock)
+            {
+                if (addr >= 0)
+                    Position = addr;
+
+                var first = ReadByte();
+
+                if ((first & 0x80) == 0)
+                    return first;
+
+                if ((first & 0xc0) == 0x80)
+                    return ((first & ~0x80u) << 8) | ReadByte();
+
+                if ((first & 0xe0) == 0xc0)
+                    return ((first & ~0xc0u) << 24) | ((uint)ReadByte() << 16) | ((uint)ReadByte() << 8) | ReadByte();
+
+                return first switch
+                {
+                    0xf0 => ReadUInt32(),
+                    0xfe => uint.MaxValue - 1,
+                    0xff => uint.MaxValue,
+                    _ => throw new InvalidDataException("Invalid compressed integer format")
+                };
             }
         }
 

@@ -63,7 +63,9 @@ namespace NoisyCowStudios.Bin2Object
         public long ReadInt64() => Reader.ReadInt64();
         public ulong ReadUInt64() => Reader.ReadUInt64();
         public int ReadInt32() => Reader.ReadInt32();
+        public int ReadCompressedInt32() => Reader.ReadCompressedInt32(-1);
         public uint ReadUInt32() => Reader.ReadUInt32();
+        public uint ReadCompressedUInt32() => Reader.ReadCompressedUInt32(-1);
         public short ReadInt16() => Reader.ReadInt16();
         public ushort ReadUInt16() => Reader.ReadUInt16();
         public bool ReadBoolean() => Reader.ReadBoolean();
@@ -75,7 +77,9 @@ namespace NoisyCowStudios.Bin2Object
         public long ReadInt64(long addr) => Reader.ReadInt64(addr);
         public ulong ReadUInt64(long addr) => Reader.ReadUInt64(addr);
         public int ReadInt32(long addr) => Reader.ReadInt32(addr);
+        public int ReadCompressedInt32(long addr) => Reader.ReadCompressedInt32(addr);
         public uint ReadUInt32(long addr) => Reader.ReadUInt32(addr);
+        public uint ReadCompressedUInt32(long addr) => Reader.ReadCompressedUInt32(addr);
         public short ReadInt16(long addr) => Reader.ReadInt16(addr);
         public ushort ReadUInt16(long addr) => Reader.ReadUInt16(addr);
         public byte ReadByte(long addr) => Reader.ReadByte(addr);

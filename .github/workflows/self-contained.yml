@@ -102,7 +102,7 @@ jobs:
       - name: Install dependencies
         run: dotnet restore -r ${{ matrix.rid }} ./Il2CppInspector.Redux.CLI
 
-      - name: Build & Publish (smaller self-contained)
+      - name: Build & Publish (Self Contained)
         run: >
           dotnet publish -c Release --self-contained true --no-restore
           -p:PublishSingleFile=true
@@ -110,10 +110,11 @@ jobs:
           -p:DebugType=None
           -p:DebugSymbols=false
           -p:InvariantGlobalization=true
-          -p:PublishTrimmed=true
-          -p:TrimMode=link
+          -p:SatelliteResourceLanguages=en
+          -p:PublishReadyToRun=false
           -o ./${{ matrix.rid }} -r ${{ matrix.rid }}
           ./Il2CppInspector.Redux.CLI/Il2CppInspector.Redux.CLI.csproj
+
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

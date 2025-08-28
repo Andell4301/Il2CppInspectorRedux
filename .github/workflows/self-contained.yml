@@ -102,11 +102,16 @@ jobs:
       - name: Install dependencies
         run: dotnet restore -r ${{ matrix.rid }} ./Il2CppInspector.Redux.CLI
 
-      # Build self-contained, single-file per RID
-      - name: Build & Publish (self-contained)
+      - name: Build & Publish (smaller self-contained)
         run: >
           dotnet publish -c Release --self-contained true --no-restore
           -p:PublishSingleFile=true
+          -p:EnableCompressionInSingleFile=true
+          -p:DebugType=None
+          -p:DebugSymbols=false
+          -p:InvariantGlobalization=true
+          -p:PublishTrimmed=true
+          -p:TrimMode=link
           -o ./${{ matrix.rid }} -r ${{ matrix.rid }}
           ./Il2CppInspector.Redux.CLI/Il2CppInspector.Redux.CLI.csproj
 

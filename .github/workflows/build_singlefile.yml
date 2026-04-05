@@ -1,0 +1,98 @@
+name: Il2CppInspectorRedux Build SingleFile
+on: [push, workflow_dispatch]
+
+env:
+  DOTNET_VERSION: 10.0.x
+  PUBLISH_FLAGS: >-
+    -c Release --self-contained true -p:PublishSingleFile=true
+    -p:IncludeNativeLibrariesForSelfExtract=true
+    -p:EnableCompressionInSingleFile=true -p:DebugType=None
+    -p:DebugSymbols=false
+
+jobs:
+  build-gui-singlefile:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - project: Il2CppInspector.Redux.GUI
+            artifact: Il2CppInspectorRedux.GUI-win-x64-singlefile
+            needs_frontend: true
+          - project: Il2CppInspector.GUI
+            artifact: Il2CppInspectorRedux.Old.GUI-win-x64-singlefile
+            needs_frontend: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Setup pnpm
+        if: matrix.needs_frontend
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: Il2CppInspector.Redux.GUI.UI/package.json
+      - name: Setup Node.js
+        if: matrix.needs_frontend
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: pnpm
+          cache-dependency-path: Il2CppInspector.Redux.GUI.UI/pnpm-lock.yaml
+      - name: Setup Rust
+        if: matrix.needs_frontend
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install frontend dependencies
+        if: matrix.needs_frontend
+        run: pnpm install
+        working-directory: ./Il2CppInspector.Redux.GUI.UI
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ matrix.project }}-${{ hashFiles('**/packages.lock.json') }}
+      - name: Publish
+        run: >-
+          dotnet publish ./${{ matrix.project }}/${{ matrix.project }}.csproj
+          -r win-x64 ${{ env.PUBLISH_FLAGS }} -o ./build_output
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: build_output
+
+  build-cli-singlefile:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rid:
+          - win-x64
+          - linux-x64
+          - linux-arm64
+          - osx-x64
+          - osx-arm64
+        project:
+          - name: Il2CppInspector.Redux.CLI
+            artifact_prefix: Il2CppInspectorRedux.CLI
+          - name: Il2CppInspector.CLI
+            artifact_prefix: Il2CppInspectorRedux.Old.CLI
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ matrix.project.name }}-${{ matrix.rid }}-${{ hashFiles('**/packages.lock.json') }}
+      - name: Publish
+        run: >-
+          dotnet publish ./${{ matrix.project.name }}/${{ matrix.project.name }}.csproj
+          -r ${{ matrix.rid }} ${{ env.PUBLISH_FLAGS }} -o ./out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.project.artifact_prefix }}-${{ matrix.rid }}-singlefile
+          path: ./out

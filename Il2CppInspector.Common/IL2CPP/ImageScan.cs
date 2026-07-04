@@ -276,7 +276,10 @@ namespace Il2CppInspector
             var mrSize = (ulong)Il2CppMetadataRegistration.StructSize(Image.Version, readerConfig);
             var typesLength = (ulong) metadata.Types.Length;
 
-            vas = FindAllMappedWords(imageBytes, typesLength).Select(a => a - mrSize + ptrSize * 4);
+            // v106.1: introduced alwaysInitMetadataUsages
+            var typeDefinitionSizesCountOffset = mrSize + ptrSize * (Image.Version >= MetadataVersions.V1061 ? 6u : 4);
+
+            vas = FindAllMappedWords(imageBytes, typesLength).Select(a => a - typeDefinitionSizesCountOffset);
 
             // >= 19
             // Luke: Previously, a check comparing MetadataUsagesCount was used here, 
@@ -311,6 +314,7 @@ namespace Il2CppInspector
             if (metadataRegistration == 0)
                 return (0, 0);
 
+            // TODO: This check could be fucked since they added the new field at the end, verify with an actual 106.1 binary
             if (Image.Version == MetadataVersions.V1060)
             {
                 // We have to check if we are loading v106.1 instead

@@ -183,6 +183,35 @@ namespace Il2CppInspector
                         + $"_{DefaultValueDataIndex.TagPrefix}{defaultValueDataIndex}";
                 }
 
+                if (Version >= MetadataVersions.V1080)
+                {
+                    // v108 added dynamic sizes for GenericInstIndex, GenericMethodIndex, MethodPointerTableIndex, InvokerTableIndex, AdjustorThunkIndex
+                    var genericMethodIndexSize = GenericMethodIndex.GetSizeByCount(Header.MethodSpecsOnGenericType.Count +
+                        Header.GenericMethodSpecsOnType.Count +
+                        Header.MethodSpecs.Count);
+
+                    var invokerTableIndexSize = Header.InvokerIndices.Count / Header.InvokerIndices.SectionSize;
+                    var adjustorThunkIndexSize =
+                        AdjustorThunkIndex.GetSizeByCount(Header.GenericMethodFunctionsDefinitionsWithAdjustor.Count);
+
+                    var genericMethodIndexTag = GenericMethodIndex.CreateTagBySize(genericMethodIndexSize);
+                    var invokerTableIndexTag = InvokerTableIndex.CreateTagBySize(invokerTableIndexSize);
+                    var adjustorThunkIndexTag = AdjustorThunkIndex.CreateTagBySize(adjustorThunkIndexSize);
+
+                    var genericInstIndexTag = GenericInstIndex.CreateTagBySize(
+                        Header.GenericMethodSpecsOnType.SectionSize / Header.GenericMethodSpecsOnType.Count
+                        - MethodIndex.GetSizeByCount(Header.Methods.SectionSize));
+
+                    var methodPointerTableIndexTag = MethodPointerTableIndex.CreateTagBySize(
+                        Header.GenericMethodFunctionsDefinitionsWithAdjustor.SectionSize /
+                        Header.GenericMethodFunctionsDefinitionsWithAdjustor.Count
+                        - (genericMethodIndexSize + invokerTableIndexSize + adjustorThunkIndexSize));
+
+                    fullTag +=
+                        $"_{genericInstIndexTag}_{genericMethodIndexTag}_{methodPointerTableIndexTag}_{invokerTableIndexTag}_{adjustorThunkIndexTag}";
+                }
+
+
                 Version = new StructVersion(Version.Major, Version.Minor, fullTag);
             }
 

@@ -2,9 +2,6 @@
 
 namespace Il2CppInspector.Next.BinaryMetadata;
 
-using MethodIndex = int;
-using GenericInstIndex = int;
-
 [VersionedStruct]
 public partial record struct Il2CppMethodSpec
 {

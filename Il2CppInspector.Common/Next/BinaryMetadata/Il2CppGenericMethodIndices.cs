@@ -2,15 +2,13 @@
 
 namespace Il2CppInspector.Next.BinaryMetadata;
 
-using MethodIndex = int;
-
 [VersionedStruct]
 public partial record struct Il2CppGenericMethodIndices
 {
-    public MethodIndex MethodIndex;
-    public MethodIndex InvokerIndex;
+    public MethodPointerTableIndex MethodIndex;
+    public InvokerTableIndex InvokerIndex;
 
     [VersionCondition(EqualTo = "24.5")]
-    [VersionCondition(GreaterThanOrEqual = "27.1")]
+    [VersionCondition(GreaterThanOrEqual = "27.1", LessThan = "108.0")]
     public MethodIndex AdjustorThunkIndex;
 }

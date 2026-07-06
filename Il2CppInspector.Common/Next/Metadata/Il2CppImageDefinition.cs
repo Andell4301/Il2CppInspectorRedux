@@ -41,7 +41,7 @@ public partial record struct Il2CppImageDefinition
     public int RgctxRangesCount { get; private set; }
 
     [VersionCondition(GreaterThanOrEqual = "108.0")]
-    public int StaticConstructorStart { get; private set; }
+    public TypeDefinitionIndex StaticConstructorStart { get; private set; }
 
     [VersionCondition(GreaterThanOrEqual = "108.0")]
     public int StaticConstructorCount { get; private set; }

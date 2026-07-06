@@ -6,7 +6,7 @@ namespace Il2CppInspector.Next.Metadata;
 public partial struct Il2CppGenericMethodFunctionsDefinitionsWithAdjustor
 {
     public GenericMethodIndex GenericMethodIndex;
-    public MethodIndex MethodIndex;
-    public MethodIndex InvokerIndex;
-    public MethodIndex AdjustorThunkIndex;
+    public MethodPointerTableIndex MethodIndex;
+    public InvokerTableIndex InvokerIndex;
+    public AdjustorThunkIndex AdjustorThunkIndex;
 }

@@ -14,14 +14,18 @@ public partial record struct Il2CppMetadataRegistration
 
     public Pointer<Pointer<Il2CppGenericClass>> GenericClasses;
 
+    [VersionCondition(LessThan = "108.0")]
     [NativeInteger]
     public int GenericInstsCount;
 
+    [VersionCondition(LessThan = "108.0")]
     public Pointer<Pointer<Il2CppGenericInst>> GenericInsts;
 
+    [VersionCondition(LessThan = "108.0")]
     [NativeInteger]
     public int GenericMethodTableCount;
 
+    [VersionCondition(LessThan = "108.0")]
     public Pointer<Il2CppGenericMethodFunctionsDefinitions> GenericMethodTable;
 
     [NativeInteger]
@@ -29,9 +33,11 @@ public partial record struct Il2CppMetadataRegistration
 
     public Pointer<Pointer<Il2CppType>> Types;
 
+    [VersionCondition(LessThan = "108.0")]
     [NativeInteger]
     public int MethodSpecsCount;
 
+    [VersionCondition(LessThan = "108.0")]
     public Pointer<Il2CppMethodSpec> MethodSpecs;
 
     [NativeInteger]

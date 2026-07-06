@@ -14,9 +14,8 @@ public struct Il2CppMetadataIndex<T>(int value) : IReadable, IEquatable<Il2CppMe
 {
     public int Value { get; private set; } = value;
 
-    public static readonly string TagPrefix = $"{typeof(T).Name}";
+    public static readonly string TagPrefix = $"{typeof(T).Name}Size";
 
-    public static readonly string SizeTag = $"{typeof(T).Name}Size";
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int GetSizeFromTag(in StructVersion version)
@@ -29,21 +28,21 @@ public struct Il2CppMetadataIndex<T>(int value) : IReadable, IEquatable<Il2CppMe
 
         // Get the position of the size tag in the version tag.
         // Bail out if not found.
-        var sizeTagPosition = version.Tag.IndexOf(SizeTag, StringComparison.Ordinal);
+        var sizeTagPosition = version.Tag.IndexOf(TagPrefix, StringComparison.Ordinal);
         if (sizeTagPosition == -1)
         {
             return sizeof(int);
         }
 
         // Get the number that follows immediately after the size tag, and convert it to the actual size.
-        var numberChar = version.Tag[sizeTagPosition + SizeTag.Length];
+        var numberChar = version.Tag[sizeTagPosition + TagPrefix.Length];
         return numberChar - Il2CppMetadataIndex.NumberZeroChar;
     }
 
     public static string CreateTagBySize(int size)
     {
         Debug.Assert(size is sizeof(byte) or sizeof(ushort) or sizeof(uint));
-        return $"{SizeTag}{size}";
+        return $"{TagPrefix}{size}";
     }
 
     public static int GetSizeByCount(int count) => count switch

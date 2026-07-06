@@ -42,7 +42,7 @@ public record struct Il2CppGenericContainer : IReadable
             size += sizeof(int);
         }
 
-        size += GenericParameterIndex.Size(version, config);
+        size += GenericParameterIndex.StructSize(version, config);
 
         return size;
     }

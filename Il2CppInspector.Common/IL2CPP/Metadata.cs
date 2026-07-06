@@ -11,6 +11,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Il2CppInspector.Next;
+using Il2CppInspector.Next.BinaryMetadata;
 using Il2CppInspector.Next.Metadata;
 using VersionedSerialization;
 
@@ -46,7 +47,14 @@ namespace Il2CppInspector
         public ImmutableArray<uint> VTableMethodIndices { get; set; }
         public string[] StringLiterals { get; set; }
 
-        public ImmutableArray<Il2CppInlineArrayLength> TypeInlineArrays { get; set; }
+        public ImmutableArray<Il2CppInlineArrayLength> TypeInlineArrays { get; set; } = [];
+
+        public ImmutableArray<Il2CppMethodSpecOnGenericType> MethodSpecsOnGenericType { get; set; } = [];
+        public ImmutableArray<Il2CppGenericMethodSpecOnType> GenericMethodSpecsOnType { get; set; } = [];
+        public ImmutableArray<Il2CppMethodSpec> MethodSpecs { get; set; } = [];
+        public ImmutableArray<Il2CppGenericMethodFunctionsDefinitions> GenericMethodFunctionsDefinitions { get; set; } = [];
+        public ImmutableArray<Il2CppGenericMethodFunctionsDefinitionsWithAdjustor> GenericMethodFunctionsDefinitionsWithAdjustor { get; set; } = [];
+        public ImmutableArray<InvokerTableIndex> InvokerIndices { get; set; } = [];
 
         public int FieldAndParameterDefaultValueDataOffset => Version >= MetadataVersions.V380
             ? Header.FieldAndParameterDefaultValueData.Offset
@@ -58,6 +66,7 @@ namespace Il2CppInspector
 
         public Dictionary<int, string> Strings { get; private set; } = [];
         public Dictionary<int, byte[]> AssemblyPublicKeys { get; private set; } = [];
+        public Dictionary<Il2CppMethodSpec, Il2CppGenericMethodFunctionsDefinitionsWithAdjustor> GenericMethodTable { get; private set; } = [];
 
         // Set if something in the metadata has been modified / decrypted
         public bool IsModified { get; private set; } = false;
@@ -190,7 +199,7 @@ namespace Il2CppInspector
                         Header.GenericMethodSpecsOnType.Count +
                         Header.MethodSpecs.Count);
 
-                    var invokerTableIndexSize = Header.InvokerIndices.Count / Header.InvokerIndices.SectionSize;
+                    var invokerTableIndexSize = Header.InvokerIndices.SectionSize / Header.InvokerIndices.Count;
                     var adjustorThunkIndexSize =
                         AdjustorThunkIndex.GetSizeByCount(Header.GenericMethodFunctionsDefinitionsWithAdjustor.Count);
 
@@ -200,7 +209,7 @@ namespace Il2CppInspector
 
                     var genericInstIndexTag = GenericInstIndex.CreateTagBySize(
                         Header.GenericMethodSpecsOnType.SectionSize / Header.GenericMethodSpecsOnType.Count
-                        - MethodIndex.GetSizeByCount(Header.Methods.SectionSize));
+                        - MethodIndex.GetSizeByCount(Header.Methods.Count));
 
                     var methodPointerTableIndexTag = MethodPointerTableIndex.CreateTagBySize(
                         Header.GenericMethodFunctionsDefinitionsWithAdjustor.SectionSize /
@@ -330,6 +339,23 @@ namespace Il2CppInspector
                 TypeInlineArrays = ReadMetadataArray<Il2CppInlineArrayLength>(0, 0, Header.TypeInlineArrays);
             }
 
+            if (Version >= MetadataVersions.V1080)
+            {
+                MethodSpecsOnGenericType = ReadMetadataArray<Il2CppMethodSpecOnGenericType>(0, 0, Header.MethodSpecsOnGenericType);
+                GenericMethodSpecsOnType = ReadMetadataArray<Il2CppGenericMethodSpecOnType>(0, 0, Header.GenericMethodSpecsOnType);
+                MethodSpecs = ReadMetadataArray<Il2CppMethodSpec>(0, 0, Header.MethodSpecs);
+
+                GenericMethodFunctionsDefinitions =
+                    ReadMetadataArray<Il2CppGenericMethodFunctionsDefinitions>(0, 0,
+                        Header.GenericMethodFunctionsDefinitions);
+
+                GenericMethodFunctionsDefinitionsWithAdjustor =
+                    ReadMetadataArray<Il2CppGenericMethodFunctionsDefinitionsWithAdjustor>(0, 0,
+                        Header.GenericMethodFunctionsDefinitionsWithAdjustor);
+
+                InvokerIndices = ReadMetadataArray<InvokerTableIndex>(0, 0, Header.InvokerIndices);
+            }
+
             // Get all metadata strings
             var pluginGetStringsResult = PluginHooks.GetStrings(this);
             if (pluginGetStringsResult.IsDataModified && !pluginGetStringsResult.IsInvalid)
@@ -438,6 +464,28 @@ namespace Il2CppInspector
                 }
             }
 
+            if (Version >= MetadataVersions.V1080)
+            {
+                GenericMethodTable.EnsureCapacity(GenericMethodFunctionsDefinitions.Length +
+                                                  GenericMethodFunctionsDefinitionsWithAdjustor.Length);
+
+                foreach (var entry in GenericMethodFunctionsDefinitions)
+                {
+                    GenericMethodTable[GetMethodSpec(entry.GenericMethodIndex)] = new Il2CppGenericMethodFunctionsDefinitionsWithAdjustor
+                    {
+                        GenericMethodIndex = entry.GenericMethodIndex,
+                        InvokerIndex = entry.Indices.InvokerIndex,
+                        MethodIndex = entry.Indices.MethodIndex,
+                        AdjustorThunkIndex = -1
+                    };
+                }
+
+                foreach (var entry in GenericMethodFunctionsDefinitionsWithAdjustor)
+                {
+                    GenericMethodTable[GetMethodSpec(entry.GenericMethodIndex)] = entry;
+                }
+            }
+
             // Post-processing hook
             IsModified |= PluginHooks.PostProcessMetadata(this).IsStreamModified;
             return;
@@ -475,6 +523,37 @@ namespace Il2CppInspector
         }
 
         public int Sizeof<T>() where T : IReadable => T.Size(Version, new ReaderConfig(Is32Bit));
+
+        public Il2CppMethodSpec GetMethodSpec(int index)
+        {
+            if (index < MethodSpecsOnGenericType.Length)
+            {
+                var entry = MethodSpecsOnGenericType[index];
+                return new Il2CppMethodSpec
+                {
+                    ClassIndexIndex = entry.ClassIndexIndex,
+                    MethodDefinitionIndex = entry.MethodDefinitionIndex,
+                    MethodIndexIndex = -1
+                };
+            }
+
+            index -= MethodSpecsOnGenericType.Length;
+
+            if (index < GenericMethodSpecsOnType.Length)
+            {
+                var entry = GenericMethodSpecsOnType[index];
+                return new Il2CppMethodSpec
+                {
+                    ClassIndexIndex = -1,
+                    MethodDefinitionIndex = entry.MethodDefinitionIndex,
+                    MethodIndexIndex = entry.MethodIndexIndex
+                };
+            }
+
+            index -= GenericMethodSpecsOnType.Length;
+
+            return MethodSpecs[index];
+        }
     }
 }
 

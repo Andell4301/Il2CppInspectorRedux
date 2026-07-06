@@ -277,7 +277,7 @@ namespace Il2CppInspector
             var typesLength = (ulong) metadata.Types.Length;
 
             // v106.1: introduced alwaysInitMetadataUsages
-            var typeDefinitionSizesCountOffset = mrSize + ptrSize * (Image.Version >= MetadataVersions.V1061 ? 6u : 4);
+            var typeDefinitionSizesCountOffset = mrSize - ptrSize * (Image.Version >= MetadataVersions.V1061 ? 6u : 4);
 
             vas = FindAllMappedWords(imageBytes, typesLength).Select(a => a - typeDefinitionSizesCountOffset);
 

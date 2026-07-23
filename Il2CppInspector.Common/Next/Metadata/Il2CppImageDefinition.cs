@@ -47,13 +47,13 @@ public partial record struct Il2CppImageDefinition
     public int StaticConstructorCount { get; private set; }
 
     [VersionCondition(GreaterThanOrEqual = "110.0")]
-    public FieldIndex FieldStart { get; private set; }
+    public int FieldStart { get; private set; }
 
     [VersionCondition(GreaterThanOrEqual = "110.0")]
-    public PropertyIndex PropertyIndex { get; private set; }
+    public int PropertyIndex { get; private set; }
 
     [VersionCondition(GreaterThanOrEqual = "110.0")]
-    public EventIndex EventIndex { get; private set; }
+    public int EventIndex { get; private set; }
 
     [VersionCondition(GreaterThanOrEqual = "110.0")]
     public MethodIndex MethodStart { get; private set; }

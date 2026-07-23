@@ -55,6 +55,8 @@ namespace Il2CppInspector
         public ImmutableArray<Il2CppGenericMethodFunctionsDefinitions> GenericMethodFunctionsDefinitions { get; set; } = [];
         public ImmutableArray<Il2CppGenericMethodFunctionsDefinitionsWithAdjustor> GenericMethodFunctionsDefinitionsWithAdjustor { get; set; } = [];
         public ImmutableArray<InvokerTableIndex> InvokerIndices { get; set; } = [];
+        public ImmutableArray<Il2CppGeneratedMethodTypeInfo> GeneratedMethodTypeInfos { get; set; } = [];
+        public ImmutableArray<Il2CppGeneratedMethodToken> GeneratedMethodTokens { get; set; } = [];
 
         public int FieldAndParameterDefaultValueDataOffset => Version >= MetadataVersions.V380
             ? Header.FieldAndParameterDefaultValueData.Offset
@@ -67,6 +69,7 @@ namespace Il2CppInspector
         public Dictionary<int, string> Strings { get; private set; } = [];
         public Dictionary<int, byte[]> AssemblyPublicKeys { get; private set; } = [];
         public Dictionary<Il2CppMethodSpec, Il2CppGenericMethodFunctionsDefinitionsWithAdjustor> GenericMethodTable { get; private set; } = [];
+        public Dictionary<int, Il2CppGeneratedMethodTypeInfo> GeneratedMethodTypeInfosByType { get; private set; } = [];
 
         // Set if something in the metadata has been modified / decrypted
         public bool IsModified { get; private set; } = false;
@@ -110,7 +113,7 @@ namespace Il2CppInspector
             // Set object versioning for Bin2Object from metadata version
             Version = new StructVersion(Header.Version);
 
-            if (Version < MetadataVersions.V160 || Version > MetadataVersions.V1080) {
+            if (Version < MetadataVersions.V160 || Version > MetadataVersions.V1100) {
                 throw new InvalidOperationException($"The supplied metadata file is not of a supported version ({Header.Version}).");
             }
 
@@ -356,6 +359,14 @@ namespace Il2CppInspector
                 InvokerIndices = ReadMetadataArray<InvokerTableIndex>(0, 0, Header.InvokerIndices);
             }
 
+            if (Version >= MetadataVersions.V1100)
+            {
+                GeneratedMethodTypeInfos =
+                    ReadMetadataArray<Il2CppGeneratedMethodTypeInfo>(0, 0, Header.GeneratedMethodTypeInfos);
+                GeneratedMethodTokens =
+                    ReadMetadataArray<Il2CppGeneratedMethodToken>(0, 0, Header.GeneratedMethodTokens);
+            }
+
             // Get all metadata strings
             var pluginGetStringsResult = PluginHooks.GetStrings(this);
             if (pluginGetStringsResult.IsDataModified && !pluginGetStringsResult.IsInvalid)
@@ -483,6 +494,16 @@ namespace Il2CppInspector
                 foreach (var entry in GenericMethodFunctionsDefinitionsWithAdjustor)
                 {
                     GenericMethodTable[GetMethodSpec(entry.GenericMethodIndex)] = entry;
+                }
+            }
+
+            if (Version >= MetadataVersions.V1100)
+            {
+                GeneratedMethodTypeInfosByType.EnsureCapacity(GeneratedMethodTypeInfos.Length);
+
+                foreach (var entry in GeneratedMethodTypeInfos)
+                {
+                    GeneratedMethodTypeInfosByType[entry.TypeIndex] = entry;
                 }
             }
 

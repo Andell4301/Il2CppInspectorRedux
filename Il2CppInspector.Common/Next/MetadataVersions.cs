@@ -65,4 +65,9 @@ public static class MetadataVersions
     // Unity 6000.6.0b1
     public static readonly StructVersion V1080 = new(108);
     // NOTE: Major changes - moved all generic method metadata, RGCTX and static cctors into global metadata, added more dynamic width indices
+
+    // Unity 6000.7.0a3
+    public static readonly StructVersion V1100 = new(110);
+    // NOTE: This version removes the token member from the definition structs,
+    // as well as introduces new sections for generated methods.
 }

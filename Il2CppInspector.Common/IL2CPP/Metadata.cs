@@ -342,6 +342,21 @@ namespace Il2CppInspector
                 TypeInlineArrays = ReadMetadataArray<Il2CppInlineArrayLength>(0, 0, Header.TypeInlineArrays);
             }
 
+            // Handle the "fake v107" version that newer 6000.5 versions introduced
+            if (Version == MetadataVersions.V1070)
+            {
+                // Since v106.1 removed a value from Il2CppMetadataUsage, we can check if the type of a vtable method entry
+                // is correct with the incremented value - if it is off by one we know it is one of the fake versions, otherwise
+                // it is actually v107.
+
+                if (VTableMethodIndices.Length > 0 &&
+                    Il2CppMetadataUsage.FromValue(Version, VTableMethodIndices[0]).Type ==
+                    Il2CppMetadataUsageType.FieldInfo)
+                {
+                    Version = new StructVersion(106, Version.Minor, Version.Tag);
+                }
+            }
+
             if (Version >= MetadataVersions.V1080)
             {
                 MethodSpecsOnGenericType = ReadMetadataArray<Il2CppMethodSpecOnGenericType>(0, 0, Header.MethodSpecsOnGenericType);

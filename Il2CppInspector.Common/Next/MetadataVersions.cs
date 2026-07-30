@@ -61,6 +61,7 @@ public static class MetadataVersions
     // Unity 6000.6.0a7
     public static readonly StructVersion V1070 = new(107);
     // NOTE: No changes, same as 106.1
+    // Newer 6000.5 versions upgraded the version to 107 without any of the changes :), so they need to be treated as v106.
 
     // Unity 6000.6.0b1
     public static readonly StructVersion V1080 = new(108);

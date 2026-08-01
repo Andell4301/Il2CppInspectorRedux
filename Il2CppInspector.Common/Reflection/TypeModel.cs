@@ -114,7 +114,7 @@ namespace Il2CppInspector.Reflection
             }
 
             // Create types and methods from MethodSpec (which incorporates TypeSpec in IL2CPP)
-            foreach (var spec in Package.MethodSpecs) {
+            foreach (var spec in Package.GetAllMethodSpecs()) {
                 var methodDefinition = MethodsByDefinitionIndex[spec.MethodDefinitionIndex];
                 var declaringType = methodDefinition.DeclaringType;
 
@@ -165,8 +165,12 @@ namespace Il2CppInspector.Reflection
 
             // Create method invokers (one per signature, in invoker index order)
             // Generic type definitions have an invoker index of -1
-            foreach (var method in MethodsByDefinitionIndex) {
-                var index = package.GetInvokerIndex(method.DeclaringType.Assembly.ModuleDefinition, method.Definition);
+            foreach (var method in MethodsByDefinitionIndex)
+            {
+                var index = package.GetInvokerIndex(method.DeclaringType.Assembly.ModuleDefinition,
+                    method.DeclaringType.Assembly.ImageDefinition, method.Definition, method.Index,
+                    method.DeclaringType.Definition, method.DeclaringType.Index);
+
                 if (index != -1)
                 {
                     MethodInvokers[index] ??= new MethodInvoker(method, index);
@@ -175,13 +179,13 @@ namespace Il2CppInspector.Reflection
             }
 
             // Create method invokers sourced from generic method invoker indices
-            foreach (var spec in GenericMethods.Keys) {
-                if (package.GenericMethodInvokerIndices.TryGetValue(spec, out var index)) {
-                    if (index != -1)
-                    {
-                        MethodInvokers[index] ??= new MethodInvoker(GenericMethods[spec], index);
-                        GenericMethods[spec].Invoker = MethodInvokers[index];
-                    }
+            foreach (var spec in GenericMethods.Keys)
+            {
+                var index = package.GetGenericInvokerIndex(spec);
+                if (index != -1)
+                {
+                    MethodInvokers[index] ??= new MethodInvoker(GenericMethods[spec], index);
+                    GenericMethods[spec].Invoker = MethodInvokers[index];
                 }
             }
 
@@ -392,7 +396,7 @@ namespace Il2CppInspector.Reflection
         // Get the method used in a metadata usage
         public MethodBase GetMetadataUsageMethod(MetadataUsage usage) => usage.Type switch {
             Il2CppMetadataUsageType.MethodDef => MethodsByDefinitionIndex[usage.SourceIndex],
-            Il2CppMetadataUsageType.MethodRef => GenericMethods[Package.MethodSpecs[usage.SourceIndex]],
+            Il2CppMetadataUsageType.MethodRef => GenericMethods[Package.GetMethodSpec(usage.SourceIndex)],
             _ => throw new InvalidOperationException("Incorrect metadata usage type to retrieve referenced type")
         };
     }

@@ -31,5 +31,31 @@ public partial record struct Il2CppImageDefinition
     [VersionCondition(GreaterThanOrEqual = "24.1")]
     public uint CustomAttributeCount { get; private set; }
 
-    public readonly bool IsValid => NameIndex != 0;
+    [VersionCondition(GreaterThanOrEqual = "108.0")]
+    public int InvokerIndicesStart { get; private set; }
+
+    [VersionCondition(GreaterThanOrEqual = "108.0")]
+    public int RgctxRangesStart { get; private set; }
+
+    [VersionCondition(GreaterThanOrEqual = "108.0")]
+    public int RgctxRangesCount { get; private set; }
+
+    [VersionCondition(GreaterThanOrEqual = "108.0")]
+    public TypeDefinitionIndex StaticConstructorStart { get; private set; }
+
+    [VersionCondition(GreaterThanOrEqual = "108.0")]
+    public int StaticConstructorCount { get; private set; }
+
+    [VersionCondition(GreaterThanOrEqual = "110.0")]
+    public int FieldStart { get; private set; }
+
+    [VersionCondition(GreaterThanOrEqual = "110.0")]
+    public int PropertyIndex { get; private set; }
+
+    [VersionCondition(GreaterThanOrEqual = "110.0")]
+    public int EventIndex { get; private set; }
+
+    [VersionCondition(GreaterThanOrEqual = "110.0")]
+    public MethodIndex MethodStart { get; private set; }
+
 }

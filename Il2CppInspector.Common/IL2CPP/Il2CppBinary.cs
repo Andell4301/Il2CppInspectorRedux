@@ -45,6 +45,7 @@ namespace Il2CppInspector
         public Dictionary<Il2CppCodeGenModule, ulong[]> ModuleMethodPointers { get; set; } = new();
 
         // Only for >=v24.2. In earlier versions, invoker indices are stored in Il2CppMethodDefinition in the metadata file
+        // v108: back to storing them in the metadata file :)
         public Dictionary<Il2CppCodeGenModule, ImmutableArray<int>> MethodInvokerIndices { get; set; } = new();
 
         // NOTE: In versions <21 and earlier releases of v21, use FieldOffsets:
@@ -92,6 +93,7 @@ namespace Il2CppInspector
         public Dictionary<string, Il2CppCodeGenModule> Modules { get; private set; }
 
         public ImmutableArray<Il2CppTypeDefinitionSizes> TypeDefinitionSizes { get; private set; }
+        public ulong[] AllGenericMethodPointers { get; private set; }
 
         // Status update callback
         private EventHandler<string> OnStatusUpdate { get; set; }
@@ -474,10 +476,10 @@ namespace Il2CppInspector
             GenericInstances = Image.ReadMappedVersionedObjectPointerArray<Il2CppGenericInst>(MetadataRegistration.GenericInsts, (int) MetadataRegistration.GenericInstsCount);
 
             // Concrete generic method pointers
-            var genericMethodPointers = Image.ReadMappedUWordArray(CodeRegistration.GenericMethodPointers, (int) CodeRegistration.GenericMethodPointersCount);
+            AllGenericMethodPointers = Image.ReadMappedUWordArray(CodeRegistration.GenericMethodPointers, (int) CodeRegistration.GenericMethodPointersCount);
             var genericMethodTable = Image.ReadMappedVersionedObjectArray<Il2CppGenericMethodFunctionsDefinitions>(MetadataRegistration.GenericMethodTable, (int) MetadataRegistration.GenericMethodTableCount);
             foreach (var tableEntry in genericMethodTable) {
-                GenericMethodPointers.Add(MethodSpecs[tableEntry.GenericMethodIndex], genericMethodPointers[tableEntry.Indices.MethodIndex]);
+                GenericMethodPointers.Add(MethodSpecs[tableEntry.GenericMethodIndex], AllGenericMethodPointers[tableEntry.Indices.MethodIndex]);
                 GenericMethodInvokerIndices.Add(MethodSpecs[tableEntry.GenericMethodIndex], tableEntry.Indices.InvokerIndex);
             }
 

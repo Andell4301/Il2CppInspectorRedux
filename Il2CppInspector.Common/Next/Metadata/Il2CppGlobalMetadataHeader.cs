@@ -346,6 +346,38 @@ public partial record struct Il2CppGlobalMetadataHeader
     [VersionCondition(GreaterThanOrEqual = "38.0")]
     public Il2CppSectionMetadata ExportedTypeDefinitions { get; private set; }
 
+    [VersionCondition(GreaterThanOrEqual = "108.0")]
+    public Il2CppSectionMetadata MethodSpecsOnGenericType { get; private set; }
+
+    [VersionCondition(GreaterThanOrEqual = "108.0")]
+    public Il2CppSectionMetadata GenericMethodSpecsOnType { get; private set; }
+
+    [VersionCondition(GreaterThanOrEqual = "108.0")]
+    public Il2CppSectionMetadata MethodSpecs { get; private set; }
+
+    [VersionCondition(GreaterThanOrEqual = "108.0")]
+    public Il2CppSectionMetadata GenericMethodFunctionsDefinitions { get; private set; }
+
+    [VersionCondition(GreaterThanOrEqual = "108.0")]
+    public Il2CppSectionMetadata GenericMethodFunctionsDefinitionsWithAdjustor { get; private set; }
+
+    [VersionCondition(GreaterThanOrEqual = "108.0")]
+    public Il2CppSectionMetadata InvokerIndices { get; private set; }
+
+    [VersionCondition(GreaterThanOrEqual = "108.0")]
+    public Il2CppSectionMetadata RgctxRanges { get; private set; }
+
+    [VersionCondition(GreaterThanOrEqual = "108.0")]
+    public Il2CppSectionMetadata RgctxValues { get; private set; }
+    [VersionCondition(GreaterThanOrEqual = "108.0")]
+    public Il2CppSectionMetadata StaticConstructorTypeIndices { get; private set; }
+
+    [VersionCondition(GreaterThanOrEqual = "110.0")]
+    public Il2CppSectionMetadata GeneratedMethodTypeInfos { get; private set; }
+
+    [VersionCondition(GreaterThanOrEqual = "110.0")]
+    public Il2CppSectionMetadata GeneratedMethodTokens { get; private set; }
+
 
     public const int ExpectedSanity = unchecked((int)0xFAB11BAF);
     public readonly bool SanityValid => Sanity == ExpectedSanity;

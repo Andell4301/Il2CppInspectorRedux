@@ -21,8 +21,8 @@ internal sealed class ProcessCommand(PortProvider portProvider) : ManualCommand<
         [CommandOption("--unity-version")]
         public string? UnityVersion { get; init; }
 
-        [CommandOption("--compiler-type")]
-        public CppCompilerType CompilerType { get; init; } = CppCompilerType.GCC;
+        [CommandOption("--compiler")]
+        public CppCompilerType Compiler { get; init; } = CppCompilerType.GCC;
 
         // C# stub
         [CommandOption("-s|--output-csharp-stub")]
@@ -118,7 +118,7 @@ internal sealed class ProcessCommand(PortProvider portProvider) : ManualCommand<
             await client.QueueExport(CppScaffoldingOutput.Id, directory, new Dictionary<string, string>
             {
                 ["unityversion"] = settings.UnityVersion ?? unityVersions.First(),
-                ["compilertype"] = settings.CompilerType.ToString()
+                ["compiler"] = settings.Compiler.ToString()
             });
         }
 

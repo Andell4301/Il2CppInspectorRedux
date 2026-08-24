@@ -1,24 +1,28 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 
 namespace Il2CppInspector.Redux.FrontendCore;
 
 public static class Extensions
 {
-    internal static bool GetAsBooleanOrDefault(this Dictionary<string, string> dict, string key, bool defaultValue)
+    extension(Dictionary<string, string> dict)
     {
-        if (dict.TryGetValue(key, out var value) && bool.TryParse(value, out var boolResult))
-            return boolResult;
+        internal bool GetAsBooleanOrDefault([ConstantExpected] string key, bool defaultValue)
+        {
+            if (dict.TryGetValue(key, out var value) && bool.TryParse(value, out var boolResult))
+                return boolResult;
 
-        return defaultValue;
-    }
+            return defaultValue;
+        }
 
-    internal static T GetAsEnumOrDefault<T>(this Dictionary<string, string> dict, string key, T defaultValue)
-        where T : struct, Enum
-    {
-        if (dict.TryGetValue(key, out var value) && Enum.TryParse<T>(value, true, out var enumResult))
-            return enumResult;
+        internal T GetAsEnumOrDefault<T>([ConstantExpected] string key, T defaultValue)
+            where T : struct, Enum
+        {
+            if (dict.TryGetValue(key, out var value) && Enum.TryParse<T>(value, true, out var enumResult))
+                return enumResult;
 
-        return defaultValue;
+            return defaultValue;
+        }
     }
 
     internal static string? GetAssemblyVersion(this Assembly assembly)

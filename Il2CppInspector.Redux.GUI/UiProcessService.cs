@@ -1,31 +1,30 @@
 ﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Il2CppInspector.Redux.GUI;
 
 public class UiProcessService(IHostApplicationLifetime lifetime) : BackgroundService
 {
-    // TODO: This needs to be adjusted for multiplatform support
-    private const string UiExecutableName = "il2cppinspectorredux.exe";
+    private const string UiResourceName = "TauriUiExecutable";
+
+    private static string UiExecutableName
+        => OperatingSystem.IsWindows() ? "il2cppinspectorredux.exe" : "il2cppinspectorredux";
 
     private Process? _uiProcess;
     private string? _uiExectuablePath;
-    private readonly TaskCompletionSource _uiProcessCreatedTask = new();
+    private readonly TaskCompletionSource<Process> _uiProcessCreatedTask = new();
 
     public void LaunchUiProcess(int port)
     {
         _uiExectuablePath ??= ExtractUiExecutable();
-        _uiProcess = Process.Start(new ProcessStartInfo(_uiExectuablePath, [port.ToString()]));
-        _uiProcessCreatedTask.SetResult();
+        var process = Process.Start(_uiExectuablePath, [port.ToString()]);
+        _uiProcessCreatedTask.SetResult(process);
     }
 
     private static string ExtractUiExecutable()
     {
         try
         {
-            using var executable =
-                typeof(UiProcessService).Assembly.GetManifestResourceStream(
-                    $"{typeof(UiProcessService).Namespace!}.{UiExecutableName}");
+            using var executable = typeof(UiProcessService).Assembly.GetManifestResourceStream(UiResourceName);
 
             if (executable == null)
                 throw new FileNotFoundException("Failed to open resource as stream.");
@@ -33,8 +32,12 @@ public class UiProcessService(IHostApplicationLifetime lifetime) : BackgroundSer
             var tempDir = Directory.CreateTempSubdirectory("il2cppinspectorredux-ui");
             var uiExePath = Path.Join(tempDir.FullName, UiExecutableName);
 
-            using var fs = File.Create(uiExePath);
-            executable.CopyTo(fs);
+            using (var fs = File.Create(uiExePath))
+                executable.CopyTo(fs);
+
+            if (!OperatingSystem.IsWindows())
+                File.SetUnixFileMode(uiExePath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+
             return uiExePath;
         }
         catch (Exception ex)
@@ -43,18 +46,17 @@ public class UiProcessService(IHostApplicationLifetime lifetime) : BackgroundSer
         }
     }
 
-    [MemberNotNull(nameof(_uiProcess))]
-    private async Task WaitForUiLaunchAsync(CancellationToken cancellationToken)
+    private async Task<Process> WaitForUiLaunchAsync(CancellationToken cancellationToken)
     {
-        await _uiProcessCreatedTask.Task.WaitAsync(cancellationToken);
+        _uiProcess = await _uiProcessCreatedTask.Task.WaitAsync(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        Debug.Assert(_uiProcess != null);
+        return _uiProcess;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await WaitForUiLaunchAsync(stoppingToken);
-        await _uiProcess.WaitForExitAsync(stoppingToken);
+        var process = await WaitForUiLaunchAsync(stoppingToken);
+        await process.WaitForExitAsync(stoppingToken);
         lifetime.StopApplication();
     }
 
@@ -64,7 +66,7 @@ public class UiProcessService(IHostApplicationLifetime lifetime) : BackgroundSer
             _uiProcess.Kill();
 
         if (_uiExectuablePath != null)
-            File.Delete(_uiExectuablePath);
+            Directory.Delete(Path.GetDirectoryName(_uiExectuablePath)!, recursive: true);
 
         return base.StopAsync(cancellationToken);
     }

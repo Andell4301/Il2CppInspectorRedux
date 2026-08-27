@@ -331,13 +331,13 @@ namespace Il2CppInspector
         // Get a method pointer if available
         public (ulong Start, ulong End)? GetMethodPointer(Il2CppCodeGenModule module, Il2CppMethodDefinition methodDef, int token) {
             // Find method pointer
-            if (methodDef.MethodIndex < 0)
-                return null;
-
             ulong start = 0;
 
             // Global method pointer array
             if (Version <= MetadataVersions.V241) {
+                if (methodDef.MethodIndex < 0)
+                    return null;
+
                 start = Binary.GlobalMethodPointers[methodDef.MethodIndex];
             }
 

@@ -1,69 +1,126 @@
 name: Il2CppInspectorRedux Build SingleFile
+
 on: [push, workflow_dispatch]
 
 env:
   DOTNET_VERSION: 10.0.x
   PUBLISH_FLAGS: >-
-    -c Release --self-contained true -p:PublishSingleFile=true
+    -c Release
+    --self-contained true
+    -p:PublishSingleFile=true
     -p:IncludeNativeLibrariesForSelfExtract=true
-    -p:EnableCompressionInSingleFile=true -p:DebugType=None
+    -p:EnableCompressionInSingleFile=true
+    -p:DebugType=None
     -p:DebugSymbols=false
 
 jobs:
   build-gui-singlefile:
-    runs-on: windows-latest
+    runs-on: ${{ matrix.platform }}
+
     strategy:
+      fail-fast: false
       matrix:
         include:
+          # Redux GUI for Windows
           - project: Il2CppInspector.Redux.GUI
             artifact: Il2CppInspectorRedux.GUI-win-x64-singlefile
             needs_frontend: true
+            platform: windows-latest
+            rid: win-x64
+
+          # Redux GUI for Linux
+          - project: Il2CppInspector.Redux.GUI
+            artifact: Il2CppInspectorRedux.GUI-linux-x64-singlefile
+            needs_frontend: true
+            platform: ubuntu-22.04
+            rid: linux-x64
+
+          # Legacy WPF GUI — Windows only
           - project: Il2CppInspector.GUI
             artifact: Il2CppInspectorRedux.Old.GUI-win-x64-singlefile
             needs_frontend: false
+            platform: windows-latest
+            rid: win-x64
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@v5
         with:
           submodules: true
-      - uses: actions/setup-dotnet@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+
       - name: Setup pnpm
-        if: matrix.needs_frontend
+        if: ${{ matrix.needs_frontend }}
         uses: pnpm/action-setup@v4
         with:
           package_json_file: Il2CppInspector.Redux.GUI.UI/package.json
+
       - name: Setup Node.js
-        if: matrix.needs_frontend
+        if: ${{ matrix.needs_frontend }}
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
           cache: pnpm
           cache-dependency-path: Il2CppInspector.Redux.GUI.UI/pnpm-lock.yaml
-      - name: Setup Rust
-        if: matrix.needs_frontend
-        uses: dtolnay/rust-toolchain@stable
+
       - name: Install frontend dependencies
-        if: matrix.needs_frontend
+        if: ${{ matrix.needs_frontend }}
         run: pnpm install
         working-directory: ./Il2CppInspector.Redux.GUI.UI
+
+      - name: Setup Rust
+        if: ${{ matrix.needs_frontend }}
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Rust cache
+        if: ${{ matrix.needs_frontend }}
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ./Il2CppInspector.Redux.GUI.UI/src-tauri
+
+      - name: Setup Tauri dependencies
+        if: ${{ matrix.needs_frontend && matrix.platform == 'ubuntu-22.04' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
       - name: Cache NuGet packages
         uses: actions/cache@v4
         with:
           path: ~/.nuget/packages
-          key: nuget-${{ matrix.project }}-${{ hashFiles('**/packages.lock.json') }}
+          key: ${{ runner.os }}-nuget-${{ matrix.project }}-${{ matrix.rid }}-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-${{ matrix.project }}-${{ matrix.rid }}-
+            ${{ runner.os }}-nuget-${{ matrix.project }}-
+
       - name: Publish
         run: >-
-          dotnet publish ./${{ matrix.project }}/${{ matrix.project }}.csproj
-          -r win-x64 ${{ env.PUBLISH_FLAGS }} -o ./build_output
-      - uses: actions/upload-artifact@v4
+          dotnet publish
+          ./${{ matrix.project }}/${{ matrix.project }}.csproj
+          -r ${{ matrix.rid }}
+          ${{ env.PUBLISH_FLAGS }}
+          -o ./build_output
+
+      - name: Upload GUI artifact
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: build_output
+          path: ./build_output
+          if-no-files-found: error
 
   build-cli-singlefile:
     runs-on: ubuntu-latest
+
     strategy:
+      fail-fast: false
       matrix:
         rid:
           - win-x64
@@ -74,25 +131,41 @@ jobs:
         project:
           - name: Il2CppInspector.Redux.CLI
             artifact_prefix: Il2CppInspectorRedux.CLI
+
           - name: Il2CppInspector.CLI
             artifact_prefix: Il2CppInspectorRedux.Old.CLI
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@v5
         with:
           submodules: true
-      - uses: actions/setup-dotnet@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+
       - name: Cache NuGet packages
         uses: actions/cache@v4
         with:
           path: ~/.nuget/packages
-          key: nuget-${{ matrix.project.name }}-${{ matrix.rid }}-${{ hashFiles('**/packages.lock.json') }}
+          key: ${{ runner.os }}-nuget-${{ matrix.project.name }}-${{ matrix.rid }}-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-${{ matrix.project.name }}-${{ matrix.rid }}-
+            ${{ runner.os }}-nuget-${{ matrix.project.name }}-
+
       - name: Publish
         run: >-
-          dotnet publish ./${{ matrix.project.name }}/${{ matrix.project.name }}.csproj
-          -r ${{ matrix.rid }} ${{ env.PUBLISH_FLAGS }} -o ./out
-      - uses: actions/upload-artifact@v4
+          dotnet publish
+          ./${{ matrix.project.name }}/${{ matrix.project.name }}.csproj
+          -r ${{ matrix.rid }}
+          ${{ env.PUBLISH_FLAGS }}
+          -o ./out
+
+      - name: Upload CLI artifact
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.project.artifact_prefix }}-${{ matrix.rid }}-singlefile
           path: ./out
+          if-no-files-found: error
